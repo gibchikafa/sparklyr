@@ -128,7 +128,7 @@ no_databricks_guid <- function() {
 #' @export
 spark_connect <- function(master,
                           spark_home = Sys.getenv("SPARK_HOME"),
-                          method = c("shell", "livy", "databricks", "test", "qubole"),
+                          method = c("shell", "livy", "databricks", "test", "qubole", "hopsworks"),
                           app_name = "sparklyr",
                           version = NULL,
                           config = spark_config(),
@@ -136,8 +136,20 @@ spark_connect <- function(master,
                           packages = NULL,
                           scala_version = NULL,
                           ...) {
+  config = livy_config(username = "", password = "", driver_cores = config$livy.driverCores,
+                       driver_memory = config$livy.driverMemory,
+                       num_executors = config$livy.numExecutors,
+                       executor_cores = config$livy.executorCores,
+                       executor_memory = config$livy.executorMemory,
+                       proxy_user = config$livy.proxyUser,
+                       queue = config$livy.queue)
   # validate method
   method <- match.arg(method)
+  #Hopsworks spark connection
+  if(method == "hopsworks") {
+    master <- Sys.getenv("LIVY_ENDPOINT")
+    version <- Sys.getenv("SPARK_VERSION")
+  }
 
   # A Databricks GUID indicates that it is running on a Databricks cluster,
   # so if there is no GUID, then method = "databricks" must refer to Databricks Connect
@@ -145,7 +157,12 @@ spark_connect <- function(master,
     method <- "databricks-connect"
     master <- "local"
   }
-  hadoop_version <- list(...)$hadoop_version
+
+  if(method == "hopsworks") {
+    hadoop_version <- Sys.getenv("HADOOP_VERSION")
+  } else {
+    hadoop_version <- list(...)$hadoop_version
+  }
 
   # ensure app_name is part of the spark-submit args
   config$`sparklyr.shell.name` <- config$`sparklyr.shell.name` %||% app_name
@@ -247,7 +264,7 @@ spark_connect <- function(master,
     if (method != "shell") {
       scon$method <- method
     }
-  } else if (method == "livy") {
+  } else if (method == "livy" || method == "hopsworks") {
     scon <- livy_connection(master,
       config,
       app_name,

@@ -15,20 +15,22 @@
 #' Read Spark configuration using the \pkg{\link[config]{config}} package.
 #'
 #' @return Named list with configuration data
-spark_config <- function(file = "config.yml", use_default = TRUE) {
+spark_config <- function(file = "config.yml", use_default = FALSE) {
   baseConfig <- list()
 
   if (use_default) {
     localConfigFile <- system.file(file.path("conf", "config-template.yml"), package = "sparklyr")
     baseConfig <- config::get(file = localConfigFile)
   }
-
   # allow options to specify sparklyr configuration settings
   optionsConfigCheck <- grepl("^spark\\.|^sparklyr\\.|^livy\\.", names(options()))
   optionsConfig <- options()[optionsConfigCheck]
   baseConfig <- merge_lists(optionsConfig, baseConfig)
-
-  userEnvConfig <- tryCatch(config::get(file = Sys.getenv("SPARKLYR_CONFIG_FILE")), error = function(e) NULL)
+  userEnvConfig <- tryCatch(config::get(file = Sys.getenv("SPARKLYR_CONFIG_FILE")), error = function(e){
+    print(e)
+    NULL
+  })
+  print(userEnvConfig$spark.driver.memory)
   baseEnvConfig <- merge_lists(baseConfig, userEnvConfig)
 
   isFileProvided <- !missing(file)

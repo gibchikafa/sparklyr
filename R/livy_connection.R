@@ -15,6 +15,7 @@ create_hive_context.livy_connection <- function(sc) {
 #' @importFrom httr text_content
 livy_validate_http_response <- function(message, req) {
   if (http_error(req)) {
+    print("Http error occured!")
     if (isTRUE(all.equal(status_code(req), 401))) {
       stop("Livy operation is unauthorized. Try spark_connect with config = livy_config()")
     }
@@ -161,7 +162,6 @@ livy_get_httr_config <- function(config, headers) {
 
   curl_opts <- config[["sparklyr.livy.curl_opts"]]
   httr_config$options <- c(httr_config$options, curl_opts)
-
   httr_config
 }
 
@@ -240,9 +240,7 @@ livy_create_session <- function(master, config) {
   )
 
   livy_validate_http_response("Failed to create livy session", req)
-
   content <- content(req)
-
   assert_that(!is.null(content$id))
   assert_that(!is.null(content$state))
   assert_that(content$kind == "spark")
@@ -269,7 +267,7 @@ livy_destroy_session <- function(sc) {
 
 livy_get_session <- function(sc) {
   session <- livy_get_json(paste(sc$master, "sessions", sc$sessionId, sep = "/"), sc$config)
-
+  print(session)
   assert_that(!is.null(session$state))
   assert_that(session$id == sc$sessionId)
 
@@ -700,7 +698,7 @@ livy_connection <- function(master,
 
   sc$code$totalReturnVars <- 0
 
-  waitStartTimeout <- spark_config_value(config, c("sparklyr.connect.timeout", "livy.session.start.timeout"), 60)
+  waitStartTimeout <- spark_config_value(config, c("sparklyr.connect.timeout", "livy.session.start.timeout"), 240)
   waitStartReties <- waitStartTimeout * 10
   while (session$state == "starting" &&
     waitStartReties > 0) {
