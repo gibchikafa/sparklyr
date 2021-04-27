@@ -271,7 +271,8 @@ spark_connect <- function(master,
       version,
       hadoop_version,
       extensions,
-      scala_version = scala_version
+      scala_version = scala_version,
+      method
     )
   } else if (method == "gateway") {
     scon <- gateway_connection(master = master, config = config)

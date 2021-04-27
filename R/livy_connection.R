@@ -15,7 +15,6 @@ create_hive_context.livy_connection <- function(sc) {
 #' @importFrom httr text_content
 livy_validate_http_response <- function(message, req) {
   if (http_error(req)) {
-    print("Http error occured!")
     if (isTRUE(all.equal(status_code(req), 401))) {
       stop("Livy operation is unauthorized. Try spark_connect with config = livy_config()")
     }
@@ -137,7 +136,8 @@ livy_config <- function(config = spark_config(),
     if (!all(valid_params)) {
       stop(paste0(names(additional_params[!valid_params]), sep = ", "), " are not valid session parameters. Valid parameters are: ", paste0(allowed_params, sep = ", "))
     }
-    singleValues <- c("proxy_user", "driver_memory", "driver_cores", "executor_memory", "executor_cores", "num_executors", "queue", "name", "heartbeat_timeout")
+    singleValues <- c("proxy_user", "driver_memory", "driver_cores", "executor_memory", "executor_cores",
+                      "num_executors", "queue", "name", "heartbeat_timeout")
     singleValues <- singleValues[singleValues %in% names(additional_params)]
     additional_params[singleValues] <- lapply(additional_params[singleValues], unbox)
 
@@ -148,6 +148,7 @@ livy_config <- function(config = spark_config(),
     }
   }
   config
+
 }
 
 livy_get_httr_config <- function(config, headers) {
@@ -216,7 +217,7 @@ livy_config_get <- function(master, config) {
 
 #' @importFrom httr POST
 #' @importFrom jsonlite unbox
-livy_create_session <- function(master, config) {
+livy_create_session <- function(master, config, method) {
   data <- list(
     kind = unbox("spark"),
     conf = livy_config_get(master, config)
@@ -229,13 +230,25 @@ livy_create_session <- function(master, config) {
   )
   if (length(session_params) > 0) data <- append(data, session_params)
 
+  json_str <- ""
+
+  if(method == "hopsworks") {
+    #the session name is serialized to an array for whatever reason by toJSON method
+    #Replace the array the array with the normal string
+    session_name <- data$name
+    to_replace <- paste('\\["', data$name, '"\\]', sep="")
+    replace_with <- paste('"', session_name, '"', sep="")
+    json_str <- gsub(to_replace, replace_with, toJSON(data))
+  } else {
+    json_str <- toJSON(data)
+  }
+
+
   req <- POST(paste(master, "sessions", sep = "/"),
     config = livy_get_httr_config(config, list(
       "Content-Type" = "application/json"
     )),
-    body = toJSON(
-      data
-    ),
+    body = json_str,
     config$sparklyr.livy.auth
   )
 
@@ -267,7 +280,6 @@ livy_destroy_session <- function(sc) {
 
 livy_get_session <- function(sc) {
   session <- livy_get_json(paste(sc$master, "sessions", sc$sessionId, sep = "/"), sc$config)
-  print(session)
   assert_that(!is.null(session$state))
   assert_that(session$id == sc$sessionId)
 
@@ -622,10 +634,13 @@ livy_connection <- function(master,
                             version,
                             hadoop_version,
                             extensions,
-                            scala_version = NULL) {
+                            scala_version = NULL,
+                            method) {
   if (is.null(version)) {
     stop("Livy connections now require the Spark version to be specified.", call. = FALSE)
   }
+
+  print("Starting Spark session")
 
   livy_connection_not_used_warn(app_name, "sparklyr")
   livy_connection_not_used_warn(hadoop_version)
@@ -662,7 +677,7 @@ livy_connection <- function(master,
   attempt <- 0L
   while (attempt <= livy_create_session_retries && is.null(session)) {
     session <- tryCatch(
-      livy_create_session(master, config),
+      livy_create_session(master, config, method),
       error = function(e) {
         if (attempt == livy_create_session_retries) {
           stop(e)
@@ -698,12 +713,11 @@ livy_connection <- function(master,
 
   sc$code$totalReturnVars <- 0
 
-  waitStartTimeout <- spark_config_value(config, c("sparklyr.connect.timeout", "livy.session.start.timeout"), 240)
+  waitStartTimeout <- spark_config_value(config, c("sparklyr.connect.timeout", "livy.session.start.timeout"), 340)
   waitStartReties <- waitStartTimeout * 10
   while (session$state == "starting" &&
     waitStartReties > 0) {
     session <- livy_get_session(sc)
-
     Sys.sleep(0.1)
     waitStartReties <- waitStartReties - 1
   }

@@ -27,10 +27,8 @@ spark_config <- function(file = "config.yml", use_default = FALSE) {
   optionsConfig <- options()[optionsConfigCheck]
   baseConfig <- merge_lists(optionsConfig, baseConfig)
   userEnvConfig <- tryCatch(config::get(file = Sys.getenv("SPARKLYR_CONFIG_FILE")), error = function(e){
-    print(e)
     NULL
   })
-  print(userEnvConfig$spark.driver.memory)
   baseEnvConfig <- merge_lists(baseConfig, userEnvConfig)
 
   isFileProvided <- !missing(file)
