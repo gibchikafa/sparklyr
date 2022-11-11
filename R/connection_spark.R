@@ -143,6 +143,7 @@ spark_connect <- function(master,
                        executor_memory = config$livy.executorMemory,
                        proxy_user = config$livy.proxyUser,
                        queue = config$livy.queue)
+  print(config)
   # validate method
   method <- match.arg(method)
   #Hopsworks spark connection
