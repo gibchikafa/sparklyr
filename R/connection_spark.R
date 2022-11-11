@@ -136,6 +136,7 @@ spark_connect <- function(master,
                           packages = NULL,
                           scala_version = NULL,
                           ...) {
+  print(config)
   config = livy_config(username = "", password = "", driver_cores = config$livy.driverCores,
                        driver_memory = config$livy.driverMemory,
                        num_executors = config$livy.numExecutors,
@@ -143,8 +144,7 @@ spark_connect <- function(master,
                        executor_memory = config$livy.executorMemory,
                        proxy_user = config$livy.proxyUser,
                        queue = config$livy.queue)
-  print(config)
-  # validate method
+    # validate method
   method <- match.arg(method)
   #Hopsworks spark connection
   if(method == "hopsworks") {
