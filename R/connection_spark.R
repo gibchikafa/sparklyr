@@ -136,7 +136,6 @@ spark_connect <- function(master,
                           packages = NULL,
                           scala_version = NULL,
                           ...) {
-  print(config)
   config = livy_config(username = "", password = "", driver_cores = config$livy.driverCores,
                        driver_memory = config$livy.driverMemory,
                        num_executors = config$livy.numExecutors,
