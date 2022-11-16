@@ -147,6 +147,11 @@ livy_config <- function(config = spark_config(),
       config[[paste0("livy.", params_map[[l]])]] <- additional_params[[l]]
     }
   }
+
+  certs_params = list(cainfo=Sys.getenv("CA_FILE"), sslcert=Sys.getenv("CERT_FILE"), sslkey=Sys.getenv("KEY_FILE"))
+
+  config <- append(config, certs_params)
+
   config
 
 }
