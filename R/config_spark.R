@@ -26,7 +26,6 @@ spark_config <- function(file = "config.yml", use_default = FALSE) {
   optionsConfigCheck <- grepl("^spark\\.|^sparklyr\\.|^livy\\.", names(options()))
   optionsConfig <- options()[optionsConfigCheck]
   baseConfig <- merge_lists(optionsConfig, baseConfig)
-  print(paste("config file is ", Sys.getenv("SPARKLYR_CONFIG_FILE"))
   userEnvConfig <- tryCatch(config::get(file = Sys.getenv("SPARKLYR_CONFIG_FILE")), error = function(e){
     NULL
   })
