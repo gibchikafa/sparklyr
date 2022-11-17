@@ -248,6 +248,11 @@ livy_create_session <- function(master, config, method) {
     json_str <- toJSON(data)
   }
 
+  print(json_str)
+
+  print(livy_get_httr_config(config, list(
+    "Content-Type" = "application/json"
+  )))
 
   req <- POST(paste(master, "sessions", sep = "/"),
     config = livy_get_httr_config(config, list(
