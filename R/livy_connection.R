@@ -248,15 +248,16 @@ livy_create_session <- function(master, config, method) {
     json_str <- toJSON(data)
   }
 
-  print(json_str)
+  #print(json_str)
 
-  print(livy_get_httr_config(config, list(
-    "Content-Type" = "application/json"
-  )))
+  #print(livy_get_httr_config(config, list(
+    #"Content-Type" = "application/json"
+  #)))
 
   req <- POST(paste(master, "sessions", sep = "/"),
     config = livy_get_httr_config(config, list(
-      "Content-Type" = "application/json"
+      cainfo = Sys.getenv("CA_FILE"), sslcert = Sys.getenv("CERT_FILE"), sslkey = Sys.getenv("KEY_FILE"),
+      "Content-Type" = "application/json", verbose = TRUE
     )),
     body = json_str,
     config$sparklyr.livy.auth
